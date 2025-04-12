@@ -1,55 +1,43 @@
-import runpod
 from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
+from fastapi import FastAPI, Request
+import uvicorn
 
-# Initialize model and tokenizer globally to avoid reloading per request
+app = FastAPI()
 model_name = "facebook/mbart-large-50-many-to-many-mmt"
 tokenizer = MBart50TokenizerFast.from_pretrained(model_name)
 model = MBartForConditionalGeneration.from_pretrained(model_name)
 
-def handler(event):
-    """
-    RunPod serverless handler function.
-    Expects input event with 'texts', 'src_lang', and 'tgt_lang'.
-    Returns translated text.
-    """
+@app.post("/test")
+async def test(request: Request):
     try:
-        # Extract input from event
-        input_data = event.get("input", {})
-        texts = input_data.get("texts")
-        src_lang = input_data.get("src_lang")
-        tgt_lang = input_data.get("tgt_lang")
+        input_data = await request.json()
+        texts = input_data.get("input").get("texts")
+        src_lang = input_data.get("input").get("src_lang")
+        tgt_lang = input_data.get("input").get("tgt_lang")
 
-        # Validate inputs
         if not all([texts, src_lang, tgt_lang]):
             return {
                 "status": "error",
                 "message": "Missing required fields: texts, src_lang, tgt_lang"
             }
 
-        # Set source language and encode input
         tokenizer.src_lang = src_lang
+        print(texts)
         encoded = tokenizer(texts, return_tensors="pt", padding=True, truncation=True)
-
-        # Generate translation
-        generated = model.generate(
-            **encoded,
-            forced_bos_token_id=tokenizer.lang_code_to_id.get(tgt_lang)
-        )
-
-        # Decode output
+        
+        generated = model.generate(**encoded, forced_bos_token_id=tokenizer.lang_code_to_id["en_XX"])
+        
+        
         translated = tokenizer.batch_decode(generated, skip_special_tokens=True)
-
-        # Return RunPod-compatible response
         return {
             "status": "success",
             "output": {"translation": translated}
         }
-
     except Exception as e:
         return {
             "status": "error",
             "message": str(e)
         }
 
-# Register the handler with RunPod
-runpod.serverless.start({"handler": handler})
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

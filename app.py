@@ -37,7 +37,7 @@ def handler(event):
         )
 
         # Decode output
-        translated = tokenizer.decode(generated[0], skip_special_tokens=True)
+        translated = tokenizer.decode(generated, skip_special_tokens=True)
 
         # Return RunPod-compatible response
         return {

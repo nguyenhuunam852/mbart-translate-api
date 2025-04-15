@@ -10,7 +10,6 @@ tokenizer = AutoTokenizer.from_pretrained('Viet-Mistral/Vistral-7B-Chat',token =
 model = AutoModelForCausalLM.from_pretrained(
     'Viet-Mistral/Vistral-7B-Chat',
     torch_dtype=torch.bfloat16,
-    use_cache=True,
     token = os.getenv("secret")
 )
 

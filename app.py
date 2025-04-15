@@ -1,12 +1,24 @@
 import runpod
-from ctransformers import AutoModelForCausalLM
-
 # Load quantized LLaMA model
-llm = AutoModelForCausalLM.from_pretrained(
-    "TheBloke/Llama-2-7b-Chat-GGUF",
-    model_file="/app/models/llama-2-7b-chat.Q4_K_S.gguf",
-    gpu_layers=20
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import BitsAndBytesConfig
+import torch
+import os
+system_prompt = "trả lời tối đa 20 chữ.\n"
+system_prompt += "Nếu một câu hỏi không có ý nghĩa hoặc không hợp lý về mặt thông tin, hãy giải thích tại sao thay vì trả lời một điều gì đó không chính xác. Nếu bạn không biết câu trả lời cho một câu hỏi, hãy trả lời là bạn không biết và vui lòng không chia sẻ thông tin sai lệch."
+
+bnb_config = BitsAndBytesConfig(load_in_4bit=True)
+
+tokenizer = AutoTokenizer.from_pretrained('Viet-Mistral/Vistral-7B-Chat',token = os.getenv("secret"))
+model = AutoModelForCausalLM.from_pretrained(
+    'Viet-Mistral/Vistral-7B-Chat',
+    torch_dtype=torch.bfloat16,
+    use_cache=True,
+    load_in_4bit=True,
+    token = os.getenv("secret")
 )
+
+conversation = [{"role": "system", "content": system_prompt}]
 
 def handler(event):
     """
@@ -28,8 +40,24 @@ def handler(event):
         # Process each prompt
         responses = []
         for prompt in texts:
-            output = llm(prompt)
-            responses.append(output.strip())
+            conversation.append({"role": "user", "content": prompt})
+            input_ids = tokenizer.apply_chat_template(conversation, return_tensors="pt").to('cuda')
+            
+            generated_ids = input_ids
+            
+            for _ in range(768): 
+                next_token_logits = model(generated_ids).logits[:, -1, :]
+                next_token = torch.multinomial(torch.softmax(next_token_logits, dim=-1), num_samples=1)
+                generated_ids = torch.cat([generated_ids, next_token], dim=-1)
+
+                token_text = tokenizer.decode(next_token[0], skip_special_tokens=True)
+                if next_token.item() == tokenizer.eos_token_id:
+                    break
+                if token_text:
+                    print(token_text+' ', end='', flush=True)
+    
+            assistant = tokenizer.decode(generated_ids[0, input_ids.size(1):], skip_special_tokens=True).strip()
+            responses.append(assistant)
 
         return {
             "status": "success",

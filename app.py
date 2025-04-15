@@ -4,9 +4,7 @@ from ctransformers import AutoModelForCausalLM
 # Load quantized LLaMA model
 llm = AutoModelForCausalLM.from_pretrained(
     "TheBloke/Llama-2-7b-Chat-GGUF",
-    model_file="llama-2-7b-chat.q5_0.gguf",  # or q4_K_M if you prefer
-    model_type="llama",
-    gpu_layers=50
+    model_file="/app/models/llama-2-7b-chat.q5_0.gguf"
 )
 
 def handler(event):

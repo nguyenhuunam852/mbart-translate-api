@@ -2,7 +2,7 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies for protoc
+# Install system dependencies for protoc and huggingface-cli
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     unzip \
@@ -13,6 +13,12 @@ RUN wget https://github.com/protocolbuffers/protobuf/releases/download/v25.5/pro
     && unzip protoc-25.5-linux-x86_64.zip -d /usr/local \
     && rm protoc-25.5-linux-x86_64.zip
 
+# Install huggingface-cli for model download
+RUN pip install huggingface_hub
+
+# Download the model file from Hugging Face
+RUN huggingface-cli download TheBloke/Llama-2-7B-Chat-GGUF llama-2-7b-chat.q5_0.gguf --local-dir /app/models --local-dir-use-symlinks False
+
 # Copy and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -22,5 +28,8 @@ COPY app.py .
 
 # Set environment variable to ensure protobuf can find protoc
 ENV PROTOC=/usr/local/bin/protoc
+
+# (Optional) Set environment variable for model file if needed by app.py
+ENV MODEL_FILE=/app/models/llama-2-7b-chat.q5_0.gguf
 
 CMD ["python", "app.py"]

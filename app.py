@@ -1,48 +1,40 @@
 import runpod
-from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
+from ctransformers import AutoModelForCausalLM
 
-# Initialize model and tokenizer globally to avoid reloading per request
-model_name = "facebook/mbart-large-50-many-to-many-mmt"
-tokenizer = MBart50TokenizerFast.from_pretrained(model_name)
-model = MBartForConditionalGeneration.from_pretrained(model_name)
+# Load quantized LLaMA model
+llm = AutoModelForCausalLM.from_pretrained(
+    "TheBloke/Llama-2-7b-Chat-GGUF",
+    model_file="llama-2-7b-chat.q5_0.gguf",  # or q4_K_M if you prefer
+    model_type="llama",
+    gpu_layers=50
+)
 
 def handler(event):
     """
     RunPod serverless handler function.
-    Expects input event with 'texts', 'src_lang', and 'tgt_lang'.
-    Returns translated text.
+    Expects input event with 'texts' (a list of prompts).
+    Returns model-generated completions.
     """
     try:
-        # Extract input from event
+        # Extract input
         input_data = event.get("input", {})
         texts = input_data.get("texts")
-        src_lang = input_data.get("src_lang")
-        tgt_lang = input_data.get("tgt_lang")
 
-        # Validate inputs
-        if not all([texts, src_lang, tgt_lang]):
+        if not texts:
             return {
                 "status": "error",
-                "message": "Missing required fields: texts, src_lang, tgt_lang"
+                "message": "Missing required field: texts"
             }
 
-        # Set source language and encode input
-        tokenizer.src_lang = src_lang
-        encoded = tokenizer(texts, return_tensors="pt", padding=True, truncation=True)
+        # Process each prompt
+        responses = []
+        for prompt in texts:
+            output = llm(prompt)
+            responses.append(output.strip())
 
-        # Generate translation
-        generated = model.generate(
-            **encoded,
-            forced_bos_token_id=tokenizer.lang_code_to_id.get(tgt_lang)
-        )
-
-        # Decode output
-        translated = tokenizer.batch_decode(generated, skip_special_tokens=True)
-
-        # Return RunPod-compatible response
         return {
             "status": "success",
-            "output": {"translation": translated}
+            "output": {"responses": responses}
         }
 
     except Exception as e:
@@ -51,5 +43,5 @@ def handler(event):
             "message": str(e)
         }
 
-# Register the handler with RunPod
+# Start RunPod serverless handler
 runpod.serverless.start({"handler": handler})

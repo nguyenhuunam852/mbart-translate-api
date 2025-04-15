@@ -1,13 +1,10 @@
 import runpod
 # Load quantized LLaMA model
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from transformers import BitsAndBytesConfig
 import torch
 import os
 system_prompt = "trả lời tối đa 20 chữ.\n"
 system_prompt += "Nếu một câu hỏi không có ý nghĩa hoặc không hợp lý về mặt thông tin, hãy giải thích tại sao thay vì trả lời một điều gì đó không chính xác. Nếu bạn không biết câu trả lời cho một câu hỏi, hãy trả lời là bạn không biết và vui lòng không chia sẻ thông tin sai lệch."
-
-bnb_config = BitsAndBytesConfig(load_in_4bit=True)
 
 tokenizer = AutoTokenizer.from_pretrained('Viet-Mistral/Vistral-7B-Chat',token = os.getenv("secret"))
 model = AutoModelForCausalLM.from_pretrained(

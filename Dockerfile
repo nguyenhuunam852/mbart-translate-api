@@ -19,9 +19,9 @@ RUN pip install --no-cache-dir huggingface_hub[cli]
 RUN huggingface-cli --version && \
         huggingface-cli whoami || echo "huggingface-cli is installed but may require login or config"
 
-RUN mkdir -p /app/models
+RUN mkdir -p /root/.cache/huggingface/hub/models/TheBloke/Llama-2-7b-Chat-GGUF
 # Download the model file from Hugging Face
-RUN huggingface-cli download TheBloke/Llama-2-7B-Chat-GGUF llama-2-7b-chat.Q4_K_S.gguf --local-dir /app/models --local-dir-use-symlinks False
+RUN huggingface-cli download TheBloke/Llama-2-7B-Chat-GGUF llama-2-7b-chat.Q4_K_S.gguf --local-dir /root/.cache/huggingface/hub/models/TheBloke/Llama-2-7b-Chat-GGUF --local-dir-use-symlinks False
 
 # Copy and install Python dependencies
 COPY requirements.txt .

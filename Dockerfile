@@ -21,7 +21,7 @@ RUN huggingface-cli --version && \
 
 RUN mkdir -p /app/models
 # Download the model file from Hugging Face
-RUN huggingface-cli download TheBloke/Llama-2-7B-Chat-GGUF llama-2-7b-chat.q5_0.gguf --local-dir /app/models --local-dir-use-symlinks False
+RUN huggingface-cli download TheBloke/Llama-2-7B-Chat-GGUF llama-2-7b-chat.Q4_K_S.gguf --local-dir /app/models --local-dir-use-symlinks False
 
 # Copy and install Python dependencies
 COPY requirements.txt .

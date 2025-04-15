@@ -10,9 +10,9 @@ tokenizer = AutoTokenizer.from_pretrained('Viet-Mistral/Vistral-7B-Chat',token =
 model = AutoModelForCausalLM.from_pretrained(
     'Viet-Mistral/Vistral-7B-Chat',
     torch_dtype=torch.bfloat16,
-    device="cuda",
+    device="auto",
     token = os.getenv("secret")
-)
+).to('cuda')
 
 conversation = [{"role": "system", "content": system_prompt}]
 
@@ -37,7 +37,7 @@ def handler(event):
         responses = []
         for prompt in texts:
             conversation.append({"role": "user", "content": prompt})
-            input_ids = tokenizer.apply_chat_template(conversation, return_tensors="pt").to('cuda')
+            input_ids = tokenizer.apply_chat_template(conversation, return_tensors="pt")
             
             generated_ids = input_ids
             

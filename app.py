@@ -19,7 +19,7 @@ tokenizer = AutoTokenizer.from_pretrained(
 model = AutoModelForCausalLM.from_pretrained(
     'Viet-Mistral/Vistral-7B-Chat',
     torch_dtype=torch.bfloat16,
-    device_map="auto",
+    device_map={"": 0},
     use_cache=True,
     token=os.getenv("secret")
 )
@@ -39,26 +39,27 @@ def handler(event):
         responses = []
         for prompt in texts:
             conversation = [
-                {"role": "user", "content": system_prompt + "\n" + "trả lời câu hỏi:" + prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
             ]
 
             input_ids = tokenizer.apply_chat_template(
                 conversation, return_tensors="pt"
             ).to(model.device)
 
-            output_ids = model.generate(
-                input_ids,
-                max_new_tokens=100,
+            out_ids = model.generate(
+                input_ids=input_ids,
+                max_new_tokens=768,
                 do_sample=True,
-                temperature=0.7,
-                eos_token_id=tokenizer.eos_token_id
+                top_p=0.95,
+                top_k=40,
+                temperature=0.1,
+                repetition_penalty=1.05,
             )
 
-            assistant = tokenizer.decode(
-                output_ids[0, input_ids.shape[-1]:],
-                skip_special_tokens=True
-            ).strip()
-
+            assistant = tokenizer.batch_decode(out_ids[:, input_ids.size(1): ], skip_special_tokens=True)[0].strip() 
+            print("Assistant: ", assistant) 
+            
             responses.append(assistant)
             
             conversation.append({"role": "assistant", "content": assistant})
